@@ -1,17 +1,20 @@
 # =========================================================
-# WPS 跨电脑云端自动修复脚本 (jsDelivr CDN 加速版)
+# WPS 跨电脑云端自动修复脚本 (UTF-8 防乱码 + CDN 加速版)
 # =========================================================
 
+# 1. 强制控制台与脚本以 UTF-8 编码输出，防止中文提示乱码
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Continue"
 
-# 1. 使用 jsDelivr CDN 加速节点，避免国内网络超时
+# 2. 使用 jsDelivr CDN 加速节点
 $BaseUrl = "https://cdn.jsdelivr.net/gh/Justinrhino/wps-font-fixer@main"
 $TempDir = Join-Path $env:TEMP "WpsFontFixer"
 
 if (Test-Path $TempDir) { Remove-Item $TempDir -Recurse -Force }
 New-Item -ItemType Directory -Path $TempDir | Out-Null
 
-# 2. 定义需补充的字体列表（确保这些文件已上传至仓库的 fonts/ 目录）
+# 3. 定义需补充的字体列表（确保这些文件已上传至仓库的 fonts/ 目录）
 $FontFiles = @("Arial.ttf", "Calibri.ttf", "SegoeUI.ttf") 
 
 Write-Host "[1/3] 正在通过 jsDelivr CDN 下载字体文件..." -ForegroundColor Green
@@ -36,14 +39,14 @@ foreach ($Font in $FontFiles) {
     }
 }
 
-# 3. 清理 WPS 渲染缓存
+# 4. 清理 WPS 渲染缓存
 Write-Host "[2/3] 正在清理 WPS 临时渲染缓存..." -ForegroundColor Green
 $WpsCachePath = "$env:LOCALAPPDATA\Kingsoft\WPS Office\office6\data"
 if (Test-Path $WpsCachePath) {
     Remove-Item -Path "$WpsCachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# 4. 清理临时下载目录
+# 5. 清理临时下载目录
 Remove-Item $TempDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "`n修复完成！请彻底关闭并重新打开 WPS。" -ForegroundColor Green
