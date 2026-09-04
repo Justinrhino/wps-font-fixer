@@ -1,20 +1,20 @@
 # =========================================================
-# WPS 跨电脑云端自动修复脚本（免本地文件依赖）
+# WPS 跨电脑云端自动修复脚本 (jsDelivr CDN 加速版)
 # =========================================================
 
 $ErrorActionPreference = "Continue"
 
-# 1. 设置云端仓库地址与临时下载目录
-$BaseUrl = "https://raw.githubusercontent.com/Justinrhino/wps-font-fixer/main"
+# 1. 使用 jsDelivr CDN 加速节点，避免国内网络超时
+$BaseUrl = "https://cdn.jsdelivr.net/gh/Justinrhino/wps-font-fixer@main"
 $TempDir = Join-Path $env:TEMP "WpsFontFixer"
 
 if (Test-Path $TempDir) { Remove-Item $TempDir -Recurse -Force }
 New-Item -ItemType Directory -Path $TempDir | Out-Null
 
-# 2. 定义需要补充的核心字体列表（根据需要自行在 GitHub 的 fonts/ 文件夹补充）
+# 2. 定义需补充的字体列表（确保这些文件已上传至仓库的 fonts/ 目录）
 $FontFiles = @("Arial.ttf", "Calibri.ttf", "SegoeUI.ttf") 
 
-Write-Host "[1/3] 正在从 GitHub 下载字体文件..." -ForegroundColor Green
+Write-Host "[1/3] 正在通过 jsDelivr CDN 下载字体文件..." -ForegroundColor Green
 
 $ShellApp = New-Object -ComObject Shell.Application
 $FontsFolder = $ShellApp.Namespace(0x14) # C:\Windows\Fonts
@@ -24,7 +24,7 @@ foreach ($Font in $FontFiles) {
     $LocalPath = Join-Path $TempDir $Font
     
     try {
-        # 实时下载字体文件到临时目录
+        # 实时下载字体文件
         Invoke-WebRequest -Uri $FontUrl -OutFile $LocalPath -UseBasicParsing
         Write-Host " -> 成功下载: $Font" -ForegroundColor Yellow
         
@@ -32,7 +32,7 @@ foreach ($Font in $FontFiles) {
         $FontsFolder.CopyHere($LocalPath, 0x10)
         Write-Host " -> 成功安装: $Font" -ForegroundColor Cyan
     } catch {
-        Write-Warning "字体 $Font 下载或安装失败，跳过。"
+        Write-Warning "字体 $Font 下载或安装失败（请检查 GitHub 的 fonts/ 目录下是否有该文件）。"
     }
 }
 
