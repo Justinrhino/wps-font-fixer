@@ -1,41 +1,49 @@
 # =========================================================
-# WPS 跨电脑字体自动安装与环境修复脚本
+# WPS 跨电脑云端自动修复脚本（免本地文件依赖）
 # =========================================================
 
-$ErrorActionPreference = "Stop"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$FontDir = Join-Path $ScriptDir "fonts"
+$ErrorActionPreference = "Continue"
 
-# 1. 自动安装/覆盖 fonts 目录下的所有字体到 Windows 系统
-if (Test-Path $FontDir) {
-    Write-Host "[1/3] 正在同步字体至系统 Font 库..." -ForegroundColor Green
-    $ShellApp = New-Object -ComObject Shell.Application
-    $FontsFolder = $ShellApp.Namespace(0x14) # C:\Windows\Fonts
+# 1. 设置云端仓库地址与临时下载目录
+$BaseUrl = "https://raw.githubusercontent.com/Justinrhino/wps-font-fixer/main"
+$TempDir = Join-Path $env:TEMP "WpsFontFixer"
+
+if (Test-Path $TempDir) { Remove-Item $TempDir -Recurse -Force }
+New-Item -ItemType Directory -Path $TempDir | Out-Null
+
+# 2. 定义需要补充的核心字体列表（根据需要自行在 GitHub 的 fonts/ 文件夹补充）
+$FontFiles = @("Arial.ttf", "Calibri.ttf", "SegoeUI.ttf") 
+
+Write-Host "[1/3] 正在从 GitHub 下载字体文件..." -ForegroundColor Green
+
+$ShellApp = New-Object -ComObject Shell.Application
+$FontsFolder = $ShellApp.Namespace(0x14) # C:\Windows\Fonts
+
+foreach ($Font in $FontFiles) {
+    $FontUrl = "$BaseUrl/fonts/$Font"
+    $LocalPath = Join-Path $TempDir $Font
     
-    Get-ChildItem -Path $FontDir -Include *.ttf, *.otf, *.ttc -Recurse | ForEach-Object {
-        $FontFile = $_.FullName
-        $FontName = $_.Name
-        Write-Host " -> 安装字体: $FontName"
-        try {
-            # 通过 Shell 自动化安装字体并注册注册表
-            $FontsFolder.CopyHere($FontFile, 0x10)
-        } catch {
-            Write-Warning "字体 $FontName 安装跳过或已存在。"
-        }
+    try {
+        # 实时下载字体文件到临时目录
+        Invoke-WebRequest -Uri $FontUrl -OutFile $LocalPath -UseBasicParsing
+        Write-Host " -> 成功下载: $Font" -ForegroundColor Yellow
+        
+        # 自动安装字体至系统
+        $FontsFolder.CopyHere($LocalPath, 0x10)
+        Write-Host " -> 成功安装: $Font" -ForegroundColor Cyan
+    } catch {
+        Write-Warning "字体 $Font 下载或安装失败，跳过。"
     }
-} else {
-    Write-Warning "未找到 fonts 目录，跳过字体安装。"
 }
 
-# 2. 清理 WPS 渲染缓存
-Write-Host "[2/3] 正在清理 WPS 临时缓存..." -ForegroundColor Green
+# 3. 清理 WPS 渲染缓存
+Write-Host "[2/3] 正在清理 WPS 临时渲染缓存..." -ForegroundColor Green
 $WpsCachePath = "$env:LOCALAPPDATA\Kingsoft\WPS Office\office6\data"
 if (Test-Path $WpsCachePath) {
     Remove-Item -Path "$WpsCachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# 3. 关闭系统 UTF-8 实验性选项（防止字符拉伸）
-Write-Host "[3/3] 正在优化系统区域编码设置..." -ForegroundColor Green
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage" -Name "ACP" -Value "936"
+# 4. 清理临时下载目录
+Remove-Item $TempDir -Recurse -Force -ErrorAction SilentlyContinue
 
-Write-Host "`n修复完成！请彻底关闭并重启 WPS 打开文档。" -ForegroundColor Cyann
+Write-Host "`n修复完成！请彻底关闭并重新打开 WPS。" -ForegroundColor Green
