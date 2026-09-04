@@ -1,5 +1,5 @@
 # =========================================================
-# WPS Cloud Font Fixer (Universal / Zero Encoding Error)
+# WPS Cloud Font Fixer (Universal - Zero Encoding Error)
 # =========================================================
 
 $ErrorActionPreference = "Continue"
@@ -28,7 +28,7 @@ foreach ($Font in $FontFiles) {
         $FontsFolder.CopyHere($LocalPath, 0x10)
         Write-Host " -> Installed: $Font" -ForegroundColor Cyan
     } catch {
-        Write-Warning "Failed to download/install $Font. Check if file exists in GitHub fonts/ folder."
+        Write-Warning "Failed to download/install $Font. Please check if fonts/$Font exists in repository."
     }
 }
 
